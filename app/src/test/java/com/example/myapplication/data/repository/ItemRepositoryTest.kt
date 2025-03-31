@@ -1,39 +1,51 @@
 package com.example.myapplication.data.repository
 
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import io.mockk.InternalPlatformDsl.toArray
+import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertTrue
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import org.junit.Rule
 import org.junit.Test
+import kotlin.properties.Delegates.notNull
 import kotlin.test.assertEquals
 
 class ItemRepositoryTest {
 
+    @get:Rule
+    val instantTaskExecutorRule = InstantTaskExecutorRule()
+
     private val repository = ItemRepositoryImpl()
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `receive valid strings`() = runTest {
         val items = repository.addItem()
+        advanceUntilIdle()
 
-        assertTrue(items.size == 1)
-        assertTrue (items.get(0).equals("My row number #1"))
+        assertTrue(items.toList().size == 1)
+        assertEquals("My row number #1", items.first().first())
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `test addItem returns new item on success`() = runTest {
-        // First call to addItem may return initial list
-        val initialItems = try {
-            repository.addItem()
-        } catch (e: Exception) {
-            // If a simulated error happens, we fail the test.
-            throw AssertionError("Unexpected error during initial call: ${e.message}")
+        val initialValues = mutableListOf<String>()
+        val job = launch {
+            repository.addItem().collect { newItems ->
+                initialValues.addAll(newItems)
+            }
         }
-        // Second call should add one more item if successful.
-        val updatedItems = try {
-            repository.addItem()
-        } catch (e: Exception) {
-            throw AssertionError("Unexpected error during second call: ${e.message}")
-        }
+        advanceUntilIdle()
+        job.cancel()
         // Validate that the list has grown by one item.
-        assertEquals(initialItems.size + 1, updatedItems.size)
+        assertEquals(1, initialValues.size)
     }
 
     @Test

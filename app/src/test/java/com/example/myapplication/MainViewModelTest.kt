@@ -1,5 +1,6 @@
 package com.example.myapplication
 
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.example.myapplication.domain.usecase.AddItemUseCase
 import com.example.myapplication.presentation.MainIntent
 import com.example.myapplication.presentation.MainViewModel
@@ -8,6 +9,8 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -21,8 +24,8 @@ import org.junit.Test
 @ExperimentalCoroutinesApi
 class MainViewModelTest {
 
-//    @get:Rule
-//    val instantTaskExecutorRule = InstantTaskExecutorRule()
+    @get:Rule
+    val instantTaskExecutorRule = InstantTaskExecutorRule()
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var addItemUseCase: AddItemUseCase
@@ -44,7 +47,7 @@ class MainViewModelTest {
     fun `when addItemUseCase returns items then state becomes Content`() = runTest {
         // Given
         val items = listOf("Item 1")
-        coEvery { addItemUseCase.execute() } returns items
+        coEvery { addItemUseCase.execute() } returns flowOf(items)
 
         // When
         viewModel.processIntent(MainIntent.AddItem)

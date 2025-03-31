@@ -2,9 +2,15 @@ package com.example.myapplication.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.myapplication.domain.model.UiState
+import com.example.myapplication.domain.model.UiState.Loading
 import com.example.myapplication.domain.usecase.AddItemUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 
 /**
@@ -24,13 +30,10 @@ class MainViewModel(private val addItemUseCase: AddItemUseCase) : ViewModel() {
 
     private fun addItem() {
         viewModelScope.launch {
-            _state.value = MainViewState.Loading
-            try {
-                val items = addItemUseCase.execute()
-                _state.value = MainViewState.Content(items)
-            } catch (e: Exception) {
-                _state.value = MainViewState.Error(e.message ?: "Unknown error")
-            }
+            addItemUseCase.execute()
+                .onStart { _state.value = MainViewState.Loading }
+                .catch { e -> _state.value = MainViewState.Error(e.message ?: "Network error") }
+                .collect { items -> _state.value = MainViewState.Content(items) }
         }
     }
 }
